@@ -153,9 +153,7 @@ radius = 150.0
 
 [sub_resource type="CircleShape2D" id=22]
 
-[node name="Boppie" type="KinematicBody2D" groups=[
-"Boppie",
-]]
+[node name="Boppie" type="KinematicBody2D" groups=["Boppie"]]
 pause_mode = 1
 z_index = 30
 collision_layer = 2
@@ -295,6 +293,7 @@ script = ExtResource( 11 )
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="TerrainSense"]
 shape = SubResource( 22 )
+
 [connection signal="DrawSenses" from="." to="DangerSense" method="_on_Boppie_DrawSenses"]
 [connection signal="DrawSenses" from="." to="AllySense" method="_on_Boppie_DrawSenses"]
 [connection signal="input_event" from="." to="." method="_on_Boppie_input_event"]
