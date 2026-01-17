@@ -2,7 +2,7 @@ extends CanvasLayer
 
 var is_saving := true
 
-func show(save_mode):
+func show_save_dialog(save_mode):
 	if save_mode:
 		$SaveDialog.mode = FileDialog.MODE_SAVE_FILE
 	else:

@@ -237,9 +237,9 @@ func _unhandled_input(event):
 		var new_time_scale = 1 << (event.scancode - KEY_1)
 		change_time_scale(new_time_scale / Engine.time_scale)
 	if event.is_action_pressed("save_simulation"): # 保存
-		$SaveDialog.show(true)
+		$SaveDialog.show_save_dialog(true)
 	if event.is_action_pressed("load_simulation"): # 加载
-		$SaveDialog.show(false)
+		$SaveDialog.show_save_dialog(false)
 	if event.is_action_pressed("follow_fittest_boppie_after_death"):
 		set_follow_fittest_boppie(!follow_fittest_boppie)
 	if event.is_action_pressed("follow_fittest_owlie"): # 跟随适应度最高的波比，
