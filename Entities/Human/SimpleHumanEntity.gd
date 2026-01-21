@@ -155,26 +155,63 @@ func set_hovered(new_value):
 
 # Draw method for visual representation
 func _draw():
-	# Draw a circle representing the entity
-	draw_circle(Vector2.ZERO, radius, color)
+	# Draw simple humanoid shape
 	
-	# Draw health bar above the entity
-	var bar_width = radius * 2
-	var bar_height = 4
-	var bar_pos = Vector2(-bar_width/2, -radius - 10)
+	# Head (circle)
+	var head_radius = radius * 0.4
+	var head_pos = Vector2(0, -radius * 0.3)
+	draw_circle(head_pos, head_radius, color)
 	
-	# Background of health bar
-	draw_rect(Rect2(bar_pos.x, bar_pos.y, bar_width, bar_height), Color.red)
+	# Body (rectangle)
+	var body_width = radius * 0.6
+	var body_height = radius * 0.8
+	var body_pos = Vector2(-body_width/2, head_pos.y + head_radius)
+	draw_rect(Rect2(body_pos.x, body_pos.y, body_width, body_height), color)
 	
-	# Health portion of the bar
+	# Arms (rectangles)
+	var arm_width = radius * 0.2
+	var arm_height = radius * 0.6
+	var arm_y = body_pos.y + body_height * 0.3
+	
+	# Left arm
+	var left_arm_pos = Vector2(body_pos.x - arm_width, arm_y)
+	draw_rect(Rect2(left_arm_pos.x, left_arm_pos.y, arm_width, arm_height), color)
+	
+	# Right arm
+	var right_arm_pos = Vector2(body_pos.x + body_width, arm_y)
+	draw_rect(Rect2(right_arm_pos.x, right_arm_pos.y, arm_width, arm_height), color)
+	
+	# Legs (rectangles)
+	var leg_width = radius * 0.2
+	var leg_height = radius * 0.7
+	var leg_y = body_pos.y + body_height
+	
+	# Left leg
+	var left_leg_pos = Vector2(body_pos.x + body_width * 0.2, leg_y)
+	draw_rect(Rect2(left_leg_pos.x, left_leg_pos.y, leg_width, leg_height), color)
+	
+	# Right leg
+	var right_leg_pos = Vector2(body_pos.x + body_width * 0.6, leg_y)
+	draw_rect(Rect2(right_leg_pos.x, right_leg_pos.y, leg_width, leg_height), color)
+	
+	# Draw status bars above the head
+	var bar_width = radius * 1.5
+	var bar_height = 3
+	var bar_spacing = 4
+	var top_pos = Vector2(-bar_width/2, -radius - 10)
+	
+	# Health bar (green)
+	var health_background_pos = top_pos
+	draw_rect(Rect2(health_background_pos.x, health_background_pos.y, bar_width, bar_height), Color(0.3, 0.3, 0.3))
 	var health_width = bar_width * (health / max_health)
-	draw_rect(Rect2(bar_pos.x, bar_pos.y, health_width, bar_height), Color.green)
+	draw_rect(Rect2(health_background_pos.x, health_background_pos.y, health_width, bar_height), Color(0.2, 0.8, 0.2))
 	
-	# Draw hunger bar below the entity
-	var hunger_bar_pos = Vector2(-bar_width/2, radius + 6)
-	draw_rect(Rect2(hunger_bar_pos.x, hunger_bar_pos.y, bar_width, bar_height), Color(0.3, 0.3, 0.3))
+	# Hunger bar (yellow), positioned below health bar
+	var hunger_background_pos = Vector2(top_pos.x, top_pos.y + bar_height + bar_spacing)
+	draw_rect(Rect2(hunger_background_pos.x, hunger_background_pos.y, bar_width, bar_height), Color(0.3, 0.3, 0.3))
 	var hunger_width = bar_width * (hunger / max_hunger)
-	draw_rect(Rect2(hunger_bar_pos.x, hunger_bar_pos.y, hunger_width, bar_height), Color.yellow)
+	draw_rect(Rect2(hunger_background_pos.x, hunger_background_pos.y, hunger_width, bar_height), Color(0.8, 0.8, 0.2))
+	
 
 # Method to get fitness/score of the entity
 func fitness():
