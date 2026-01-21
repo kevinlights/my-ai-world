@@ -38,6 +38,9 @@ var terrain_tiles = []
 var resource_tiles = []
 
 func _ready():
+	# Add to world generator group for easy access
+	add_to_group("world_generator")
+	
 	# Initialize noises
 	noise = OpenSimplexNoise.new()
 	noise.seed = 12345
@@ -290,10 +293,86 @@ func get_terrain_at_position(position):
 	var tile_y = int((position.y + world_size.y / 2) / tile_size)
 	
 	var height = world_data.size()
-	var width = world_data[0].size() if height > 0 else 0
+	if height == 0:
+		return 0  # Default to water
 	
-	# Check if tile coordinates are within bounds
+	var width = world_data[0].size()
+	
 	if tile_y >= 0 and tile_y < height and tile_x >= 0 and tile_x < width:
 		return world_data[tile_y][tile_x]  # Fixed: use tile_y, tile_x instead of tile_x, tile_y
 	else:
 		return 0  # Default to water
+
+# Get terrain type by tile coordinates
+func get_terrain_by_tile(tile_x, tile_y):
+	var height = world_data.size()
+	if height == 0:
+		return 0  # Default to water
+	
+	var width = world_data[0].size()
+	
+	if tile_y >= 0 and tile_y < height and tile_x >= 0 and tile_x < width:
+		return world_data[tile_y][tile_x]
+	else:
+		return 0  # Default to water
+
+# Get terrain name from type
+func get_terrain_name(terrain_type):
+	match terrain_type:
+		TERRAIN_WATER: return "Water"
+		TERRAIN_GRASS: return "Grass"
+		TERRAIN_DESERT: return "Desert"
+		TERRAIN_MOUNTAIN: return "Mountain"
+	return "Unknown"
+
+# Get terrain movement cost (higher = slower movement)
+func get_terrain_movement_cost(terrain_type):
+	match terrain_type:
+		TERRAIN_WATER: return 3.0  # Slow movement in water
+		TERRAIN_GRASS: return 1.0  # Normal movement on grass
+		TERRAIN_DESERT: return 1.5  # Slightly slower in desert
+		TERRAIN_MOUNTAIN: return 2.5  # Slow movement in mountains
+	return 1.0
+
+# Get terrain suitability for different activities
+func get_terrain_suitability(terrain_type, activity_type):
+	# Activity types: "gathering", "hunting", "building", "resting"
+	var suitability = 0.0
+	
+	match activity_type:
+		"gathering":
+			match terrain_type:
+				TERRAIN_WATER: suitability = 0.2
+				TERRAIN_GRASS: suitability = 1.0
+				TERRAIN_DESERT: suitability = 0.5
+				TERRAIN_MOUNTAIN: suitability = 0.3
+		"hunting":
+			match terrain_type:
+				TERRAIN_WATER: suitability = 0.5
+				TERRAIN_GRASS: suitability = 0.8
+				TERRAIN_DESERT: suitability = 0.6
+				TERRAIN_MOUNTAIN: suitability = 0.3
+		"building":
+			match terrain_type:
+				TERRAIN_WATER: suitability = 0.1
+				TERRAIN_GRASS: suitability = 0.9
+				TERRAIN_DESERT: suitability = 0.7
+				TERRAIN_MOUNTAIN: suitability = 0.4
+		"resting":
+			match terrain_type:
+				TERRAIN_WATER: suitability = 0.3
+				TERRAIN_GRASS: suitability = 0.9
+				TERRAIN_DESERT: suitability = 0.6
+				TERRAIN_MOUNTAIN: suitability = 0.5
+		_: suitability = 0.5  # Default suitability
+	
+	return suitability
+
+# Get terrain risk level
+func get_terrain_risk(terrain_type):
+	match terrain_type:
+		TERRAIN_WATER: return 0.7  # High risk in water
+		TERRAIN_GRASS: return 0.1  # Low risk on grass
+		TERRAIN_DESERT: return 0.3  # Moderate risk in desert
+		TERRAIN_MOUNTAIN: return 0.5  # Moderate risk in mountains
+	return 0.5

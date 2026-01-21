@@ -100,9 +100,19 @@ BoppieEvolution 是一个基于 Godot 3.6.2 引擎开发的自然选择模拟项
   /Applications/Godot_mono_3.6.2.app/Contents/MacOS/Godot --path /path/to/BoppieEvolution --quit
   ```
 
-- **运行人类测试场景**:
+- **运行简单人类测试场景**:
   ```bash
   /Applications/Godot_mono_3.6.2.app/Contents/MacOS/Godot --path /path/to/BoppieEvolution --scene Levels/TestSimpleHuman/TestSimpleHuman.tscn --quit
+  ```
+
+- **运行人类实体测试场景**:
+  ```bash
+  /Applications/Godot_mono_3.6.2.app/Contents/MacOS/Godot --path /path/to/BoppieEvolution --scene Levels/TestHumanEntity/TestHumanEntity.tscn --quit
+  ```
+
+- **运行人类导航和地形感知测试场景**:
+  ```bash
+  /Applications/Godot_mono_3.6.2.app/Contents/MacOS/Godot --path /path/to/BoppieEvolution --scene Levels/TestHumanNavigation/TestHumanNavigation.tscn --quit
   ```
 
 #### 通用参数说明

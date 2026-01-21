@@ -90,6 +90,30 @@ godot -e project.godot
    - `Space` - 暂停/恢复
    - 数字 1-9 - 设置时间倍数 (1x 到 256x)
 
+## 测试场景
+
+### 运行测试场景的命令行方法
+
+```bash
+# 运行主测试场景
+/Applications/Godot_mono_3.6.2.app/Contents/MacOS/Godot --path /Volumes/Data/projects/runbooks/BoppieEvolution --scene Levels/Testing/Testing.tscn
+
+# 运行简单人类测试场景
+/Applications/Godot_mono_3.6.2.app/Contents/MacOS/Godot --path /Volumes/Data/projects/runbooks/BoppieEvolution --scene Levels/TestSimpleHuman/TestSimpleHuman.tscn
+
+# 运行人类实体测试场景
+/Applications/Godot_mono_3.6.2.app/Contents/MacOS/Godot --path /Volumes/Data/projects/runbooks/BoppieEvolution --scene Levels/TestHumanEntity/TestHumanEntity.tscn
+
+# 运行人类导航和地形感知测试场景
+/Applications/Godot_mono_3.6.2.app/Contents/MacOS/Godot --path /Volumes/Data/projects/runbooks/BoppieEvolution --scene Levels/TestHumanNavigation/TestHumanNavigation.tscn
+```
+
+### 测试场景说明
+
+1. **TestSimpleHuman.tscn**: 测试简单人类实体的基本功能，包括移动、资源收集和状态变化
+2. **TestHumanEntity.tscn**: 测试完整人类实体的生理/心理需求、社会属性和情感系统
+3. **TestHumanNavigation.tscn**: 测试人类实体的地形感知和导航功能，包括A*路径查找和地形影响
+
 ## Mac Mini M4 开发建议
 
 - M4 芯片的 ARM64 架构为 Godot 3D/2D 游戏提供了出色的性能

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://Verification_Phase4.gd" type="Script" id=1]
+
+[node name="VerificationPhase4" type="Node2D"]
+script = ExtResource( 1 )

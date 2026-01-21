@@ -12,15 +12,15 @@ var can_die := true
 # ------------------------
 var hunger = 100.0  # Hunger level (0-100), decreases over time
 var max_hunger = 100.0
-var hunger_rate = 5.0  # How fast hunger decreases per second
+var hunger_rate = 0.5  # How fast hunger decreases per second (reduced from 5.0)
 
 var thirst = 100.0  # Thirst level (0-100), decreases over time
 var max_thirst = 100.0
-var thirst_rate = 7.0  # How fast thirst decreases per second
+var thirst_rate = 0.7  # How fast thirst decreases per second (reduced from 7.0)
 
 var fatigue = 0.0  # Fatigue level (0-100), increases over time
 var max_fatigue = 100.0
-var fatigue_rate = 3.0  # How fast fatigue increases per second
+var fatigue_rate = 0.3  # How fast fatigue increases per second (reduced from 3.0)
 var fatigue_recovery_rate = 10.0  # How fast fatigue recovers when resting
 
 var health = 100.0  # Health level (0-100), affected by hunger, thirst, and fatigue
@@ -114,6 +114,14 @@ var resources = {}
 var terrain_awareness = {}  # Awareness of surrounding terrain
 var navigation_path = []  # Current navigation path
 var target_position = null  # Target position to move towards
+var world_generator = null  # Reference to the world generator
+var terrain_movement_costs = {}  # Movement costs for different terrain types
+var terrain_suitability = {}  # Suitability for different activities
+var terrain_risk = {}  # Risk levels for different terrain types
+var current_terrain_type = 1  # Current terrain type (default to grass)
+var perception_range = 5  # Number of tiles to perceive in each direction
+var pathfinding_grid = []  # Grid for pathfinding
+var movement_speed_multiplier = 1.0  # Movement speed multiplier based on terrain
 
 # ------------------------
 # State properties
@@ -159,6 +167,12 @@ func _ready():
 	collect_timer.connect("timeout", self, "_on_CollectTimer_timeout")
 	add_child(collect_timer)
 	collect_timer.start()
+	
+	# Find the world generator
+	find_world_generator()
+	
+	# Initialize terrain properties from world generator
+	initialize_terrain_properties()
 	
 	# Trigger initial draw
 	self.update()
@@ -274,17 +288,239 @@ func update_social_properties(delta):
 		personality[trait] = clamp(personality[trait] + rand_range(-0.1, 0.1) * delta, 0, 100)
 
 # ------------------------
+# Find the world generator node in the scene tree
+# ------------------------
+func find_world_generator():
+	print("HumanEntity: Finding world generator...")
+	
+	# Look for world generator in the entire scene tree using SceneTree
+	var nodes = get_tree().get_nodes_in_group("world_generator")
+	
+	if nodes.size() > 0:
+		world_generator = nodes[0]
+		print("HumanEntity: Found world generator in group")
+		return
+	
+	# Last resort: check siblings and children
+	print("HumanEntity: Checking siblings and children...")
+	var parent = get_parent()
+	if parent:
+		# Check parent's children (siblings)
+		for child in parent.get_children():
+			if child != self and child.has_method("get_terrain_at_position"):
+				world_generator = child
+				print("HumanEntity: Found world generator in siblings")
+				return
+		
+		# Check parent itself
+		if parent.has_method("get_terrain_at_position"):
+			world_generator = parent
+			print("HumanEntity: Found world generator in parent")
+			return
+	
+	print("HumanEntity: Warning - World generator not found!")
+
+# ------------------------
+# Initialize terrain properties from world generator
+# ------------------------
+func initialize_terrain_properties():
+	if world_generator:
+		# Get terrain movement costs from world generator
+		var terrain_types = [0, 1, 2, 3]  # Water, Grass, Desert, Mountain
+		for terrain_type in terrain_types:
+			terrain_movement_costs[terrain_type] = world_generator.get_terrain_movement_cost(terrain_type)
+			terrain_suitability[terrain_type] = {}
+			terrain_suitability[terrain_type]["gathering"] = world_generator.get_terrain_suitability(terrain_type, "gathering")
+			terrain_suitability[terrain_type]["hunting"] = world_generator.get_terrain_suitability(terrain_type, "hunting")
+			terrain_suitability[terrain_type]["building"] = world_generator.get_terrain_suitability(terrain_type, "building")
+			terrain_suitability[terrain_type]["resting"] = world_generator.get_terrain_suitability(terrain_type, "resting")
+			terrain_risk[terrain_type] = world_generator.get_terrain_risk(terrain_type)
+
+# ------------------------
 # Update terrain awareness
 # ------------------------
 func update_terrain_awareness():
-	# Simple terrain awareness (to be expanded)
-	# This would normally use raycasts or other methods to detect surrounding terrain
-	pass
+	if not world_generator:
+		return
+	
+	# Clear previous terrain awareness
+	terrain_awareness.clear()
+	
+	# Get current position in world coordinates
+	var world_pos = global_position
+	
+	# Update current terrain type
+	current_terrain_type = world_generator.get_terrain_at_position(world_pos)
+	
+	# Calculate movement speed multiplier based on terrain
+	movement_speed_multiplier = 1.0 / (terrain_movement_costs.get(current_terrain_type, 1.0) if terrain_movement_costs.has(current_terrain_type) else 1.0)
+	
+	# Check surrounding tiles for terrain awareness
+	var tile_size = 32.0  # Match the world generator's tile size
+	var tile_pos = Vector2(int(world_pos.x / tile_size), int(world_pos.y / tile_size))
+	
+	for y_offset in range(-perception_range, perception_range + 1):
+		for x_offset in range(-perception_range, perception_range + 1):
+			var check_tile_pos = tile_pos + Vector2(x_offset, y_offset)
+			var terrain_type = world_generator.get_terrain_by_tile(check_tile_pos.x, check_tile_pos.y)
+			var world_check_pos = Vector2(check_tile_pos.x * tile_size, check_tile_pos.y * tile_size)
+			
+			# Add to terrain awareness map
+			terrain_awareness[str(check_tile_pos)] = {
+				"position": world_check_pos,
+				"terrain_type": terrain_type,
+				"movement_cost": terrain_movement_costs.get(terrain_type, 1.0),
+				"risk": terrain_risk.get(terrain_type, 0.5),
+				"distance": world_check_pos.distance_to(world_pos)
+			}
 
 # ------------------------
-# Simple movement behavior (random wandering)
+# Simple pathfinding algorithm (A*)
+# ------------------------
+func calculate_path(start_pos, target_pos):
+	if not world_generator:
+		return []
+	
+	var tile_size = 32.0
+	var start_tile = Vector2(int(start_pos.x / tile_size), int(start_pos.y / tile_size))
+	var target_tile = Vector2(int(target_pos.x / tile_size), int(target_pos.y / tile_size))
+	
+	# Check if start and target are the same
+	if start_tile == target_tile:
+		return [target_pos]
+	
+	# Open and closed sets for A*
+	var open_set = [start_tile]
+	var closed_set = []
+	
+	# Dictionaries to track came from, g score, and f score
+	var came_from = {}
+	var g_score = {}
+	var f_score = {}
+	
+	# Initialize scores
+	g_score[str(start_tile)] = 0.0
+	f_score[str(start_tile)] = start_tile.distance_to(target_tile)
+	
+	while open_set.size() > 0:
+		# Find the tile with the lowest f score
+		var current = null
+		var lowest_f = INF
+		for tile in open_set:
+			var f = f_score.get(str(tile), INF)
+			if f < lowest_f:
+				lowest_f = f
+				current = tile
+		
+		# Check if we've reached the target
+		if current == target_tile:
+			return reconstruct_path(came_from, current, tile_size)
+		
+		# Remove current from open set and add to closed set
+		open_set.erase(current)
+		closed_set.append(current)
+		
+		# Check neighbors
+		var neighbors = [
+			Vector2(current.x + 1, current.y),
+			Vector2(current.x - 1, current.y),
+			Vector2(current.x, current.y + 1),
+			Vector2(current.x, current.y - 1)
+		]
+		
+		for neighbor in neighbors:
+			# Skip if in closed set
+			if neighbor in closed_set:
+				continue
+			
+			# Get terrain type for neighbor
+			var terrain_type = world_generator.get_terrain_by_tile(neighbor.x, neighbor.y)
+			
+			# Skip water tiles (not traversable)
+			if terrain_type == 0:  # WATER
+				continue
+			
+			# Calculate tentative g score
+			var movement_cost = terrain_movement_costs.get(terrain_type, 1.0)
+			var tentative_g_score = g_score.get(str(current), INF) + movement_cost
+			
+			# Add to open set if not already there
+			if not neighbor in open_set:
+				open_set.append(neighbor)
+			# Skip if this path is not better
+			elif tentative_g_score >= g_score.get(str(neighbor), INF):
+				continue
+			
+			# This is a better path
+			came_from[str(neighbor)] = current
+			g_score[str(neighbor)] = tentative_g_score
+			f_score[str(neighbor)] = tentative_g_score + neighbor.distance_to(target_tile)
+	
+	# If no path found, return empty array
+	return []
+
+# ------------------------
+# Reconstruct path from came_from dictionary
+# ------------------------
+func reconstruct_path(came_from, current, tile_size):
+	var path = []
+	path.append(Vector2(current.x * tile_size + tile_size/2, current.y * tile_size + tile_size/2))
+	
+	while str(current) in came_from:
+		current = came_from[str(current)]
+		path.append(Vector2(current.x * tile_size + tile_size/2, current.y * tile_size + tile_size/2))
+	
+	# Reverse the path to get from start to target
+	path.invert()
+	return path
+
+# ------------------------
+# Follow a generated path
+# ------------------------
+func follow_path(delta):
+	if navigation_path.size() == 0:
+		return false
+	
+	# Get the next waypoint
+	var next_waypoint = navigation_path[0]
+	var direction = (next_waypoint - global_position).normalized()
+	
+	# Move towards the waypoint
+	var adjusted_speed = move_speed * movement_speed_multiplier
+	var velocity = direction * adjusted_speed * delta
+	move_and_slide(velocity, Vector2.UP)
+	
+	# Check if we've reached the waypoint
+	if global_position.distance_to(next_waypoint) < 10:
+		navigation_path.remove(0)
+		# If this was the last waypoint, return true
+		if navigation_path.size() == 0:
+			target_position = null
+			return true
+	
+	return false
+
+# ------------------------
+# Set a new navigation target
+# ------------------------
+func set_navigation_target(target_pos):
+	target_position = target_pos
+	if world_generator:
+		navigation_path = calculate_path(global_position, target_pos)
+
+# ------------------------
+# Simple movement behavior with terrain awareness and path following
 # ------------------------
 func simple_move(delta):
+	# Ensure navigation_path is initialized
+	if navigation_path == null:
+		navigation_path = []
+	
+	# Follow path if one exists
+	if navigation_path.size() > 0:
+		follow_path(delta)
+		return
+	
 	# Randomly change direction occasionally
 	if randf() < 0.02:  # 2% chance each frame to change direction
 		rotation_direction = randf() * 2 - 1  # -1 to 1
@@ -299,30 +535,72 @@ func simple_move(delta):
 		# Calculate movement direction without rotating the entity
 		var movement_angle = rotation_direction * PI  # Convert to radians (-PI to PI)
 		
+		# Adjust movement speed based on terrain
+		var adjusted_speed = move_speed * movement_speed_multiplier
+		
 		# Move in the calculated direction
-		var velocity = Vector2(cos(movement_angle), sin(movement_angle)) * move_speed * delta
-		self.move_and_slide(velocity, Vector2.UP)
+		var velocity = Vector2(cos(movement_angle), sin(movement_angle)) * adjusted_speed * delta
+		move_and_slide(velocity, Vector2.UP)
+		
+		# Add terrain-aware behavior: prefer suitable terrain for gathering
+		if randf() < 0.01:  # 1% chance to check for better terrain
+			check_for_better_terrain()
+
+# ------------------------
+# Check for better terrain nearby for gathering
+# ------------------------
+func check_for_better_terrain():
+	if terrain_awareness.size() == 0:
+		return
+	
+	var best_terrain_score = 0.0
+	var best_terrain_pos = null
+	
+	# Evaluate surrounding terrain for gathering suitability
+	for tile_str in terrain_awareness.keys():
+		var terrain_info = terrain_awareness[tile_str]
+		var terrain_type = terrain_info["terrain_type"]
+		var distance = terrain_info["distance"]
+		
+		# Skip water tiles
+		if terrain_type == 0:  # WATER
+			continue
+		
+		# Calculate terrain score: higher suitability * inverse distance
+		var gathering_suitability = terrain_suitability.get(terrain_type, {}).get("gathering", 0.5)
+		var risk_factor = 1.0 - terrain_risk.get(terrain_type, 0.5) / 2.0  # Lower risk is better
+		var score = gathering_suitability * risk_factor / (distance + 1.0)  # Add 1 to avoid division by zero
+		
+		if score > best_terrain_score:
+			best_terrain_score = score
+			best_terrain_pos = terrain_info["position"]
+	
+	# If found a better terrain, set it as target
+	if best_terrain_pos and best_terrain_score > 0.2:
+		set_navigation_target(best_terrain_pos)
 
 # ------------------------
 # Resource collection and consumption
 # ------------------------
 func _on_CollectTimer_timeout():
-	if not dead and hunger > 10 and thirst > 10:
+	if not dead:
 		# Simulate collecting resources based on skills
 		var gathering_efficiency = 1 + skills["gathering"] / 100
-		var collected = min(carrying_capacity - current_resources, 2 * gathering_efficiency)
+		var collected = min(carrying_capacity - current_resources, 3 * gathering_efficiency)  # Increased collection amount
 		current_resources += collected
 		
 		if collected > 0:
-			# Determine resource type based on terrain and situation
-			var resource_type = "food" if randf() > 0.3 else "water"
+			# Determine resource type based on current needs (prioritize the most urgent need)
+			var resource_type = "food"
+			if thirst < hunger:
+				resource_type = "water"
 			resources[resource_type] += collected
 			
 			# Increase hunger/thirst when collecting resources
 			if resource_type == "food":
-				hunger = min(max_hunger, hunger + collected * 5)
+				hunger = min(max_hunger, hunger + collected * 10)  # Increased hunger gain
 			elif resource_type == "water":
-				thirst = min(max_thirst, thirst + collected * 7)
+				thirst = min(max_thirst, thirst + collected * 15)  # Increased thirst gain
 			
 			emit_signal("HumanEntityCollectedResource", self, resource_type, collected)
 
