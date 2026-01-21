@@ -25,6 +25,8 @@ BoppieEvolution 是一个基于 Godot 3.6.2 引擎开发的自然选择模拟项
 - [Owlie](file:///Volumes/Data/projects/runbooks/BoppieEvolution/Entities/Boppie/Types/Owlie.gd) - 猫头鹰类生物
 - [Kloppie](file:///Volumes/Data/projects/runbooks/BoppieEvolution/Entities/Boppie/Types/Kloppie.gd) - 捕食者生物
 - [Food](file:///Volumes/Data/projects/runbooks/BoppieEvolution/Entities/Food/Food.gd) - 食物实体
+- [SimpleHumanEntity](file:///Volumes/Data/projects/runbooks/BoppieEvolution/Entities/Human/SimpleHumanEntity.gd) - 人类实体
+- [BasicResource](file:///Volumes/Data/projects/runbooks/BoppieEvolution/Entities/Resources/BasicResource.gd) - 基础资源
 
 ### AI 和神经网络
 - [AI](file:///Volumes/Data/projects/runbooks/BoppieEvolution/Controllers/AIs/AI.gd) - AI 基类
@@ -89,6 +91,24 @@ BoppieEvolution 是一个基于 Godot 3.6.2 引擎开发的自然选择模拟项
 2. 克隆仓库: `git clone https://github.com/LiquidFun/BoppieEvolution`
 3. 在 Godot 中导入 `project.godot` 文件
 4. 点击播放按钮运行项目
+
+### 命令行运行
+
+#### macOS (Godot Mono 3.6.2)
+- **运行主游戏场景**:
+  ```bash
+  /Applications/Godot_mono_3.6.2.app/Contents/MacOS/Godot --path /path/to/BoppieEvolution --quit
+  ```
+
+- **运行人类测试场景**:
+  ```bash
+  /Applications/Godot_mono_3.6.2.app/Contents/MacOS/Godot --path /path/to/BoppieEvolution --scene Levels/TestSimpleHuman/TestSimpleHuman.tscn --quit
+  ```
+
+#### 通用参数说明
+- `--path` 指定项目路径
+- `--scene` 指定要运行的场景文件
+- `--quit` 运行后自动退出（适合测试）
 
 ## 设计原理
 

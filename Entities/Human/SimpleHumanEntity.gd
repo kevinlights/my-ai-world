@@ -113,11 +113,18 @@ func _on_CollectTimer_timeout():
 			hunger = min(max_hunger, hunger + collected * 5)
 			emit_signal("SimpleHumanEntityCollectedResource", self, collected)
 
-# Eat collected resources to restore hunger
+# Eat collected resources to restore hunger or directly consume resource values
 func consume_resources(amount):
-	if current_resources >= amount:
-		current_resources -= amount
-		hunger = min(max_hunger, hunger + amount * 8)  # Eating restores hunger significantly
+	# Case 1: Direct resource consumption from BasicResource
+	# This is called when the entity touches a resource
+	hunger = min(max_hunger, hunger + amount * 8)  # Eating restores hunger significantly
+	
+	# Case 2: Consume from carried resources (if needed)
+	# This would be called when the entity decides to eat carried resources
+	# if current_resources >= amount:
+	#     current_resources -= amount
+	#     hunger = min(max_hunger, hunger + amount * 8)
+
 
 # Die method
 func die():
