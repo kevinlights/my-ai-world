@@ -94,11 +94,12 @@ func simple_move(delta):
 	if randf() < 0.02:  # 2% chance each frame to change direction
 		rotation_direction = randf() * 2 - 1  # -1 to 1
 	
-	# Apply rotation
-	self.rotation += rotation_direction * turn_speed * delta
+	# Calculate movement direction without rotating the entity
+	# Use rotation_direction to determine movement angle
+	var movement_angle = rotation_direction * PI  # Convert to radians (-PI to PI)
 	
-	# Move forward
-	var velocity = Vector2(cos(rotation), sin(rotation)) * move_speed * delta
+	# Move in the calculated direction
+	var velocity = Vector2(cos(movement_angle), sin(movement_angle)) * move_speed * delta
 	self.move_and_slide(velocity, Vector2.UP)
 
 # Collect resources when timer fires
@@ -206,11 +207,11 @@ func _draw():
 	var health_width = bar_width * (health / max_health)
 	draw_rect(Rect2(health_background_pos.x, health_background_pos.y, health_width, bar_height), Color(0.2, 0.8, 0.2))
 	
-	# Hunger bar (yellow), positioned below health bar
+	# Hunger bar (brown), positioned below health bar
 	var hunger_background_pos = Vector2(top_pos.x, top_pos.y + bar_height + bar_spacing)
 	draw_rect(Rect2(hunger_background_pos.x, hunger_background_pos.y, bar_width, bar_height), Color(0.3, 0.3, 0.3))
 	var hunger_width = bar_width * (hunger / max_hunger)
-	draw_rect(Rect2(hunger_background_pos.x, hunger_background_pos.y, hunger_width, bar_height), Color(0.8, 0.8, 0.2))
+	draw_rect(Rect2(hunger_background_pos.x, hunger_background_pos.y, hunger_width, bar_height), Color(0.5, 0.35, 0.0))
 	
 
 # Method to get fitness/score of the entity
